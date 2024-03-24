@@ -2,14 +2,14 @@
 
 # Unduh file dari URL yang diberikan
 echo "=== Downloading files ==="
-curl -L -o genshin_character.zip "URL_Genshin_Character.zip"
-curl -L -o list_character.csv "URL_List_Character.csv"
-curl -L -o genshin.zip "URL_Genshin.zip"
+wget -q -O genshin_character.zip "URL_Genshin_Character.zip"
+wget -q -O list_character.csv "URL_List_Character.csv"
+wget -q -O genshin.zip "URL_Genshin.zip"
 
 # Ekstrak file yang telah diunduh
 echo "=== Extracting files ==="
-unzip genshin_character.zip
-unzip genshin.zip
+unzip -q genshin_character.zip
+unzip -q genshin.zip
 
 # Dekode nama file yang terenkripsi dengan hexadecimal
 echo "=== Decoding filenames ==="
@@ -39,7 +39,7 @@ done
 
 # Hapus file yang tidak diperlukan
 echo "=== Removing unnecessary files ==="
-rm genshin_character.zip list_character.csv genshin.zip
+rm -f genshin_character.zip list_character.csv genshin.zip
 
 # Inisialisasi pencatatan log
 log_file="image.log"
@@ -50,7 +50,7 @@ echo "=== Searching for hidden images ==="
 while true; do
     for image in *.jpg; do
         # Ekstrak nilai dari setiap gambar menggunakan steghide
-        extracted_txt=$(steghide extract -sf "$image" -p "" 2>&1 | grep "extracted")
+        extracted_txt=$(steghide extract -sf "$image" -p "" 2>/dev/null | grep "extracted")
         if [[ -n "$extracted_txt" ]]; then
             # Jika hasil ekstraksi adalah file txt yang dicari, simpan hasil dekripsi
             # Jika bukan, hapus file txt tersebut
