@@ -4,6 +4,7 @@
 #include <typeinfo>
 #include <algorithm>
 #include <iomanip>
+#include <sstream>
 #include <fstream>
 
 using namespace std;
@@ -26,43 +27,21 @@ public:
           deliveryType(deliveryType), weight(weight), price(price), deliveryDays(deliveryDays) {}
 
     int getId() const { return id; }
-    string getCustomerName() const { return customerName; }
-    void setCustomerName(const string& name) { customerName = name; }
-
-    string getServiceType() const { return serviceType; }
-    void setServiceType(const string& service) { serviceType = service; }
-
-    string getDeliveryType() const { return deliveryType; }
-    void setDeliveryType(const string& delivery) { deliveryType = delivery; }
-
+    const string& getCustomerName() const { return customerName; }
+    const string& getServiceType() const { return serviceType; }
+    const string& getDeliveryType() const { return deliveryType; }
     float getWeight() const { return weight; }
-    void setWeight(float w) { weight = w; }
-
     float getPrice() const { return price; }
-    void setPrice(float p) { price = p; }
-
     int getDeliveryDays() const { return deliveryDays; }
-    void setDeliveryDays(int days) { deliveryDays = days; }
 
-    friend ostream& operator<<(ostream& os, const LaundryItem& item);
-    friend istream& operator>>(istream& is, LaundryItem& item);
+    void setId(int newId) { id = newId; }
+    void setCustomerName(const string& newName) { customerName = newName; }
+    void setServiceType(const string& newServiceType) { serviceType = newServiceType; }
+    void setDeliveryType(const string& newDeliveryType) { deliveryType = newDeliveryType; }
+    void setWeight(float newWeight) { weight = newWeight; }
+    void setPrice(float newPrice) { price = newPrice; }
+    void setDeliveryDays(int newDeliveryDays) { deliveryDays = newDeliveryDays; }
 };
-
-ostream& operator<<(ostream& os, const LaundryItem& item) {
-    os << item.id << " " << item.customerName << " " << item.serviceType << " "
-       << item.deliveryType << " " << item.weight << " " << item.price << " "
-       << item.deliveryDays;
-    return os;
-}
-
-istream& operator>>(istream& is, LaundryItem& item) {
-    is >> item.id >> ws;
-    getline(is, item.customerName, ' ');
-    getline(is, item.serviceType, ' ');
-    getline(is, item.deliveryType, ' ');
-    is >> item.weight >> item.price >> item.deliveryDays;
-    return is;
-}
 
 class LaundryService {
 public:
@@ -126,6 +105,19 @@ private:
         transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
         return lowerStr;
     }
+
+    void displayHeader() const {
+    cout << string(95, '-') << endl;
+    cout << setw(5) << left << "ID"
+         << setw(20) << left << "Customer"
+         << setw(15) << left << "Service"
+         << setw(15) << left << "Delivery"
+         << setw(15) << left << "Weight(kg)"
+         << setw(10) << left << "Price"
+         << setw(15) << left << "Delivery Days"
+         << endl;
+    cout << string(95, '-') << endl;
+}
 
     int findItemIndexById(int id) const {
         for (size_t i = 0; i < items.size(); ++i) {
@@ -197,18 +189,7 @@ public:
         if (items.empty()) {
             cout << "No items in the system." << endl;
         } else {
-            cout << string(95, '-') << endl;
-
-            cout << setw(5) << left << "ID"
-                 << setw(20) << left << "Customer"
-                 << setw(15) << left << "Service"
-                 << setw(15) << left << "Delivery"
-                 << setw(15) << left << "Weight(kg)"
-                 << setw(10) << left << "Price"
-                 << setw(15) << left << "Delivery Days"
-                 << endl;
-            cout << string(95, '-') << endl;
-
+            displayHeader(); 
             for (const auto& item : items) {
                 cout << setw(5) << left << item.getId()
                      << setw(20) << left << item.getCustomerName()
@@ -253,19 +234,7 @@ public:
     void findItemById(int id) const {
         int index = findItemIndexById(id);
         if (index != -1) {
-            cout << string(95, '-') << endl;
-
-            cout << setw(5) << left << "ID"
-                 << setw(20) << left << "Customer"
-                 << setw(15) << left << "Service"
-                 << setw(15) << left << "Delivery"
-                 << setw(15) << left << "Weight(kg)"
-                 << setw(10) << left << "Price"
-                 << setw(15) << left << "Delivery Days"
-                 << endl;
-
-            cout << string(95, '-') << endl;
-
+            displayHeader();
             const auto& item = items[index];
             cout << setw(5) << left << item.getId()
                  << setw(20) << left << item.getCustomerName()
@@ -286,18 +255,7 @@ public:
         for (const auto& item : items) {
             if (toLowerCase(item.getCustomerName()).find(lowerName) != string::npos) {
                 if (!found) {
-                    cout << string(95, '-') << endl;
-
-                    cout << setw(5) << left << "ID"
-                         << setw(20) << left << "Customer"
-                         << setw(15) << left << "Service"
-                         << setw(15) << left << "Delivery"
-                         << setw(15) << left << "Weight(kg)"
-                         << setw(10) << left << "Price"
-                         << setw(15) << left << "Delivery Days"
-                         << endl;
-
-                    cout << string(95, '-') << endl;
+                    displayHeader();
                     found = true;
                 }
                 cout << setw(5) << left << item.getId()
@@ -320,18 +278,7 @@ public:
         for (const auto& item : items) {
             if (getServiceCode(item.getServiceType()) == serviceType) {
                 if (!found) {
-                    cout << string(95, '-') << endl;
-
-                    cout << setw(5) << left << "ID"
-                         << setw(20) << left << "Customer"
-                         << setw(15) << left << "Service"
-                         << setw(15) << left << "Delivery"
-                         << setw(15) << left << "Weight(kg)"
-                         << setw(10) << left << "Price"
-                         << setw(15) << left << "Delivery Days"
-                         << endl;
-
-                    cout << string(95, '-') << endl;
+                    displayHeader();
                     found = true;
                 }
                 cout << setw(5) << left << item.getId()
@@ -354,18 +301,7 @@ public:
         for (const auto& item : items) {
             if (item.getDeliveryType() == deliveryType) {
                 if (!found) {
-                    cout << string(95, '-') << endl;
-
-                    cout << setw(5) << left << "ID"
-                         << setw(20) << left << "Customer"
-                         << setw(15) << left << "Service"
-                         << setw(15) << left << "Delivery"
-                         << setw(15) << left << "Weight(kg)"
-                         << setw(10) << left << "Price"
-                         << setw(15) << left << "Delivery Days"
-                         << endl;
-
-                    cout << string(95, '-') << endl;
+                    displayHeader();
                     found = true;
                 }
                 cout << setw(5) << left << item.getId()
@@ -413,26 +349,68 @@ public:
         }
     }
 
-    void saveDataToFile(const string& filename) const {
-    ofstream outFile(filename);
-    if (!outFile) {
-        cerr << "Unable to open file " << filename << " for writing." << endl;
-        return;
-    }
-
-    for (const auto& item : items) {
-        outFile << item << endl;
-    }
-
-    outFile.close();
-    cout << "Data has been successfully saved to " << filename << "." << endl;
+string itemToString(const LaundryItem& item) const {
+    stringstream ss;
+    ss << item.getId() << "," << item.getCustomerName() << "," << item.getServiceType() << ","
+       << item.getDeliveryType() << "," << item.getWeight() << "," << item.getPrice() << ","
+       << item.getDeliveryDays();
+    return ss.str();
 }
+
+void saveToFile(const string& filename) const {
+    ofstream file(filename);
+    if (file.is_open()) {
+        for (const auto& item : items) {
+            file << itemToString(item) << endl;
+        }
+        file.close();
+        cout << "Data saved successfully to " << filename << endl;
+    } else {
+        cout << "Unable to open file " << filename << endl;
+    }
+}
+
+void loadFromFile(const string& filename) {
+    ifstream file(filename);
+    if (file.is_open()) {
+        items.clear(); // Menghapus data yang ada sebelumnya
+
+        string line;
+        while (getline(file, line)) {
+            stringstream ss(line);
+            int id, deliveryDays;
+            string customerName, serviceType, deliveryType;
+            float weight, price;
+
+            // Parsing setiap bagian dari string
+            string token;
+            getline(ss, token, ',');
+            id = stoi(token);
+            getline(ss, customerName, ',');
+            getline(ss, serviceType, ',');
+            getline(ss, deliveryType, ',');
+            getline(ss, token, ',');
+            weight = stof(token);
+            getline(ss, token, ',');
+            price = stof(token);
+            getline(ss, token);
+            deliveryDays = stoi(token);
+
+            items.push_back(LaundryItem(id, customerName, serviceType, deliveryType, weight, price, deliveryDays));
+        }
+        file.close();
+        cout << "Data loaded successfully from " << filename << endl;
+    } else {
+        cout << "Unable to open file " << filename << endl;
+    }
+}
+
 
 };
 
-
 int main() {
     LaundrySystem system;
+    system.loadFromFile("laundry_data.txt");
 
     int choice;
     string customerName, deliveryType, serviceType, usernameInput, passwordInput;
@@ -500,7 +478,7 @@ int main() {
                 cout << "Enter weight (kg): ";
                 cin >> weight;
                 system.createItem(customerName, service, deliveryType, weight);
-                system.saveDataToFile("data.txt");
+                system.saveToFile("laundry_data.txt");
                 break;
             case 2:
                 system.readItems();
@@ -523,7 +501,7 @@ int main() {
                     cin.ignore();
                     getline(cin, customerName);
                     system.updateItem(id, customerName, nullptr, "", 0); 
-                    system.saveDataToFile("data.txt");
+                    system.saveToFile("laundry_data.txt");
                     break;
                 case 2:
                     cout << "Select new service type:\n1. Cuci Kering\n2. Cuci Setrika\n3. Setrika\n";
@@ -543,7 +521,7 @@ int main() {
                             continue;
                     }
                     system.updateItem(id, "", service, "", 0); 
-                    system.saveDataToFile("data.txt");
+                    system.saveToFile("laundry_data.txt");
                     break;
                 case 3:
                     cout << "Select new delivery type:\n1. Reguler\n2. Kilat\n3. Super Kilat\n";
@@ -563,13 +541,13 @@ int main() {
                             continue;
                     }
                     system.updateItem(id, "", nullptr, deliveryType, 0);
-                    system.saveDataToFile("data.txt"); 
+                    system.saveToFile("laundry_data.txt");
                     break;
                 case 4:
                     cout << "Enter new weight in kg: ";
                     cin >> weight;
                     system.updateItem(id, "", nullptr, "", weight);
-                    system.saveDataToFile("data.txt"); 
+                    system.saveToFile("laundry_data.txt");
                     break;
                 default:
                     cout << "Invalid option. Please choose again." << endl;
@@ -580,7 +558,7 @@ int main() {
                 cout << "Enter ID of the item to delete: ";
                 cin >> id;
                 system.deleteItem(id);
-                system.saveDataToFile("data.txt");
+                system.saveToFile("laundry_data.txt");
                 break;
             case 5:
                 cout << "Enter ID of the item to find: ";
