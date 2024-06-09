@@ -205,25 +205,83 @@ void createItem(const string& customerName, LaundryService* service, const strin
         }
     }
 
-    void updateItem(int id, const string& newCustomerName, LaundryService* newService, const string& newDeliveryType, float newWeight) {
-        int index = findItemIndexById(id);
-        if (index != -1) {
-            if (!newCustomerName.empty())
-                items[index].setCustomerName(newCustomerName);
-            if (newService != nullptr)
-                items[index].setServiceType(typeid(*newService).name());
-            if (!newDeliveryType.empty())
-                items[index].setDeliveryType(newDeliveryType);
-            if (newWeight > 0)
-                items[index].setWeight(newWeight);
+    void editItem(int id) {
+int index = findItemIndexById(id);
+    if (index != -1) {
+        LaundryItem& item = items[index];
 
-            items[index].setPrice(calculatePrice(newService != nullptr ? newService : new Cuci_Kering(), newWeight, newDeliveryType));
-            items[index].setDeliveryDays(calculateDeliveryDays(newDeliveryType));
-        } else {
-            cout << "Item with ID " << id << " not found." << endl;
+        string customerName, deliveryType;
+        float weight;
+        cout << "Enter new customer name: ";
+        cin.ignore();
+        getline(cin, customerName);
+        item.setCustomerName(customerName);
+
+        cout << "Select new service type:\n1. Cuci Kering\n2. Cuci Setrika\n3. Setrika\n";
+        int serviceChoice;
+        cout << "Enter new service type (1/2/3): ";
+        cin >> serviceChoice;
+        string serviceType;
+        switch (serviceChoice) {
+            case 1:
+                serviceType = typeid(Cuci_Kering).name();
+                break;
+            case 2:
+                serviceType = typeid(Cuci_Setrika).name();
+                break;
+            case 3:
+                serviceType = typeid(Setrika).name();
+                break;
+            default:
+                cout << "Invalid choice." << endl;
+                return;
         }
-    }
+        item.setServiceType(serviceType);
 
+        cout << "Select new delivery type:\n1. Reguler\n2. Kilat\n3. Super Kilat\n";
+        int deliveryChoice;
+        cout << "Enter new delivery type (1/2/3): ";
+        cin >> deliveryChoice;
+        switch (deliveryChoice) {
+            case 1:
+                deliveryType = "Reguler";
+                break;
+            case 2:
+                deliveryType = "Kilat";
+                break;
+            case 3:
+                deliveryType = "Super Kilat";
+                break;
+            default:
+                cout << "Invalid delivery type. Please choose again." << endl;
+                return;
+        }
+        item.setDeliveryType(deliveryType);
+
+        cout << "Enter new weight (kg): ";
+        cin >> weight;
+        item.setWeight(weight);
+
+        LaundryService* service = nullptr;
+        if (serviceType == typeid(Cuci_Kering).name()) {
+            service = new Cuci_Kering();
+        } else if (serviceType == typeid(Cuci_Setrika).name()) {
+            service = new Cuci_Setrika();
+        } else if (serviceType == typeid(Setrika).name()) {
+            service = new Setrika();
+        }
+
+        float price = calculatePrice(service, weight, deliveryType);
+        item.setPrice(price);
+        int deliveryDays = calculateDeliveryDays(deliveryType);
+        item.setDeliveryDays(deliveryDays);
+
+        cout << "Item with ID " << id << " has been successfully edited." << endl;
+    } else {
+        cout << "Item with ID " << id << " not found." << endl;
+    }
+}
+ 
     void deleteItem(int id) {
         int index = findItemIndexById(id);
         if (index != -1) {
@@ -485,77 +543,12 @@ int main() {
             case 2:
                 system.readItems();
                 break;
-        case 3:
-            cout << "Enter item ID to edit: ";
-            cin >> id;
-            cout << "Select item to edit:\n";
-            cout << "1. Customer Name\n";
-            cout << "2. Service Type\n";
-            cout << "3. Delivery Type\n";
-            cout << "4. Weight\n";
-            cout << "Enter item to edit:\n";
-            int editOption;
-            cin >> editOption;
-
-            switch (editOption) {
-                case 1:
-                    cout << "Enter new customer name: ";
-                    cin.ignore();
-                    getline(cin, customerName);
-                    system.updateItem(id, customerName, nullptr, "", 0); 
-                    system.saveToFile("laundry_data.txt");
-                    break;
-                case 2:
-                    cout << "Select new service type:\n1. Cuci Kering\n2. Cuci Setrika\n3. Setrika\n";
-                    cin >> serviceChoice;
-                    switch(serviceChoice) {
-                        case 1:
-                            service = new Cuci_Kering();
-                            break;
-                        case 2:
-                            service = new Cuci_Setrika();
-                            break;
-                        case 3:
-                            service = new Setrika();
-                            break;
-                        default:
-                            cout << "Invalid service type. Please choose again." << endl;
-                            continue;
-                    }
-                    system.updateItem(id, "", service, "", 0); 
-                    system.saveToFile("laundry_data.txt");
-                    break;
-                case 3:
-                    cout << "Select new delivery type:\n1. Reguler\n2. Kilat\n3. Super Kilat\n";
-                    cin >> deliveryChoice;
-                    switch(deliveryChoice) {
-                        case 1:
-                            deliveryType = "Reguler";
-                            break;
-                        case 2:
-                            deliveryType = "Kilat";
-                            break;
-                        case 3:
-                            deliveryType = "Super Kilat";
-                            break;
-                        default:
-                            cout << "Invalid delivery type. Please choose again." << endl;
-                            continue;
-                    }
-                    system.updateItem(id, "", nullptr, deliveryType, 0);
-                    system.saveToFile("laundry_data.txt");
-                    break;
-                case 4:
-                    cout << "Enter new weight in kg: ";
-                    cin >> weight;
-                    system.updateItem(id, "", nullptr, "", weight);
-                    system.saveToFile("laundry_data.txt");
-                    break;
-                default:
-                    cout << "Invalid option. Please choose again." << endl;
-                    continue;
-            }
-            break;
+            case 3:
+                int idToEdit;
+                cout << "Enter ID of item to edit: ";
+                cin >> idToEdit;
+                system.editItem(idToEdit);
+                break;
             case 4:
                 cout << "Enter ID of the item to delete: ";
                 cin >> id;
