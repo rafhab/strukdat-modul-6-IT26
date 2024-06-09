@@ -4,6 +4,7 @@
 #include <typeinfo>
 #include <algorithm>
 #include <iomanip>
+#include <fstream>
 
 using namespace std;
 
@@ -18,6 +19,7 @@ private:
     int deliveryDays;
 
 public:
+    LaundryItem() : id(0), customerName(""), serviceType(""), deliveryType(""), weight(0), price(0), deliveryDays(0) {}
     LaundryItem(int id, const string& customerName, const string& serviceType,
                 const string& deliveryType, float weight, float price, int deliveryDays)
         : id(id), customerName(customerName), serviceType(serviceType),
@@ -41,7 +43,26 @@ public:
 
     int getDeliveryDays() const { return deliveryDays; }
     void setDeliveryDays(int days) { deliveryDays = days; }
+
+    friend ostream& operator<<(ostream& os, const LaundryItem& item);
+    friend istream& operator>>(istream& is, LaundryItem& item);
 };
+
+ostream& operator<<(ostream& os, const LaundryItem& item) {
+    os << item.id << " " << item.customerName << " " << item.serviceType << " "
+       << item.deliveryType << " " << item.weight << " " << item.price << " "
+       << item.deliveryDays;
+    return os;
+}
+
+istream& operator>>(istream& is, LaundryItem& item) {
+    is >> item.id >> ws;
+    getline(is, item.customerName, ' ');
+    getline(is, item.serviceType, ' ');
+    getline(is, item.deliveryType, ' ');
+    is >> item.weight >> item.price >> item.deliveryDays;
+    return is;
+}
 
 class LaundryService {
 public:
@@ -90,7 +111,7 @@ public:
 class LaundrySystem {
 private:
     vector<LaundryItem> items;
-    int nextId;
+    int nextId = 1; 
     struct Customer {
         string name;
         int totalOrders;
@@ -99,7 +120,7 @@ private:
     vector<Customer> customers;
     const string staffUsername = "staff";
     const string staffPassword = "password";
-    
+
     string toLowerCase(const string& str) const {
         string lowerStr = str;
         transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
@@ -137,20 +158,19 @@ private:
         }
         return -1;
     }
-    
+
     string getServiceCode(const string& serviceType) const {
         if (serviceType == typeid(Cuci_Kering).name()) {
             return "Cuci Kering";
         } else if (serviceType == typeid(Cuci_Setrika).name()) {
-            return "Cuci Setrika"; 
+            return "Cuci Setrika";
         } else if (serviceType == typeid(Setrika).name()) {
-            return "Setrika"; 
+            return "Setrika";
         }
         return "Unknown";
     }
 
 public:
-    LaundrySystem() : nextId(1) {}
 
     void createItem(const string& customerName, LaundryService* service, const string& deliveryType, float weight) {
         float price = calculatePrice(service, weight, deliveryType);
@@ -173,43 +193,48 @@ public:
         items.push_back(LaundryItem(nextId++, customerName, typeid(*service).name(), deliveryType, weight, price, deliveryDays));
     }
 
-void readItems() const {
-    if (items.empty()) {
-        cout << "No items in the system." << endl;
-    } else {
-        cout << setw(5) << left << "ID"
-             << setw(20) << left << "Customer"
-             << setw(15) << left << "Service"
-             << setw(15) << left << "Delivery"
-             << setw(15) << left << "Weight(kg)"
-             << setw(10) << left << "Price"
-             << setw(15) << left << "Delivery Days"
-             << endl;
+    void readItems() const {
+        if (items.empty()) {
+            cout << "No items in the system." << endl;
+        } else {
+            cout << string(95, '-') << endl;
 
-        cout << string(90, '-') << endl;
-
-        for (const auto& item : items) {
-            cout << setw(5) << left << item.getId()
-                 << setw(20) << left << item.getCustomerName()
-                 << setw(15) << left << getServiceCode(item.getServiceType())
-                 << setw(15) << left << item.getDeliveryType()
-                 << setw(15) << left << item.getWeight()
-                 << setw(10) << left << item.getPrice()
-                 << setw(15) << left << item.getDeliveryDays()
+            cout << setw(5) << left << "ID"
+                 << setw(20) << left << "Customer"
+                 << setw(15) << left << "Service"
+                 << setw(15) << left << "Delivery"
+                 << setw(15) << left << "Weight(kg)"
+                 << setw(10) << left << "Price"
+                 << setw(15) << left << "Delivery Days"
                  << endl;
+            cout << string(95, '-') << endl;
+
+            for (const auto& item : items) {
+                cout << setw(5) << left << item.getId()
+                     << setw(20) << left << item.getCustomerName()
+                     << setw(15) << left << getServiceCode(item.getServiceType())
+                     << setw(15) << left << item.getDeliveryType()
+                     << setw(15) << left << item.getWeight()
+                     << setw(10) << left << item.getPrice()
+                     << setw(15) << left << item.getDeliveryDays()
+                     << endl;
+            }
         }
     }
-}
-
 
     void updateItem(int id, const string& newCustomerName, LaundryService* newService, const string& newDeliveryType, float newWeight) {
-                int index = findItemIndexById(id);
+        int index = findItemIndexById(id);
         if (index != -1) {
-            items[index].setCustomerName(newCustomerName);
-            items[index].setServiceType(typeid(*newService).name());
-            items[index].setDeliveryType(newDeliveryType);
-            items[index].setWeight(newWeight);
-            items[index].setPrice(calculatePrice(newService, newWeight, newDeliveryType));
+            if (!newCustomerName.empty())
+                items[index].setCustomerName(newCustomerName);
+            if (newService != nullptr)
+                items[index].setServiceType(typeid(*newService).name());
+            if (!newDeliveryType.empty())
+                items[index].setDeliveryType(newDeliveryType);
+            if (newWeight > 0)
+                items[index].setWeight(newWeight);
+
+            items[index].setPrice(calculatePrice(newService != nullptr ? newService : new Cuci_Kering(), newWeight, newDeliveryType));
             items[index].setDeliveryDays(calculateDeliveryDays(newDeliveryType));
         } else {
             cout << "Item with ID " << id << " not found." << endl;
@@ -228,6 +253,8 @@ void readItems() const {
     void findItemById(int id) const {
         int index = findItemIndexById(id);
         if (index != -1) {
+            cout << string(95, '-') << endl;
+
             cout << setw(5) << left << "ID"
                  << setw(20) << left << "Customer"
                  << setw(15) << left << "Service"
@@ -236,14 +263,17 @@ void readItems() const {
                  << setw(10) << left << "Price"
                  << setw(15) << left << "Delivery Days"
                  << endl;
-            cout << string(90, '-') << endl;
-            cout << setw(5) << left << items[index].getId()
-                 << setw(20) << left << items[index].getCustomerName()
-                 << setw(15) << left << getServiceCode(items[index].getServiceType())
-                 << setw(15) << left << items[index].getDeliveryType()
-                 << setw(15) << left << items[index].getWeight()
-                 << setw(10) << left << items[index].getPrice()
-                 << setw(15) << left << items[index].getDeliveryDays()
+
+            cout << string(95, '-') << endl;
+
+            const auto& item = items[index];
+            cout << setw(5) << left << item.getId()
+                 << setw(20) << left << item.getCustomerName()
+                 << setw(15) << left << getServiceCode(item.getServiceType())
+                 << setw(15) << left << item.getDeliveryType()
+                 << setw(15) << left << item.getWeight()
+                 << setw(10) << left << item.getPrice()
+                 << setw(15) << left << item.getDeliveryDays()
                  << endl;
         } else {
             cout << "Item with ID " << id << " not found." << endl;
@@ -252,109 +282,104 @@ void readItems() const {
 
     void findItemByName(const string& name) const {
         string lowerName = toLowerCase(name);
+        bool found = false;
+        for (const auto& item : items) {
+            if (toLowerCase(item.getCustomerName()).find(lowerName) != string::npos) {
+                if (!found) {
+                    cout << string(95, '-') << endl;
 
-        vector<int> indices;
-        for (size_t i = 0; i < items.size(); ++i) {
-            if (toLowerCase(items[i].getCustomerName()) == lowerName) {
-                indices.push_back(i);
-            }
-        }
+                    cout << setw(5) << left << "ID"
+                         << setw(20) << left << "Customer"
+                         << setw(15) << left << "Service"
+                         << setw(15) << left << "Delivery"
+                         << setw(15) << left << "Weight(kg)"
+                         << setw(10) << left << "Price"
+                         << setw(15) << left << "Delivery Days"
+                         << endl;
 
-        if (indices.empty()) {
-            cout << "No items found for customer name \"" << name << "\"." << endl;
-        } else {
-            cout << setw(5) << left << "ID"
-                 << setw(20) << left << "Customer"
-                 << setw(15) << left << "Service"
-                 << setw(15) << left << "Delivery"
-                 << setw(15) << left << "Weight(kg)"
-                 << setw(10) << left << "Price"
-                 << setw(15) << left << "Delivery Days"
-                 << endl;
-            cout << string(90, '-') << endl;
-
-            for (int index : indices) {
-                cout << setw(5) << left << items[index].getId()
-                     << setw(20) << left << items[index].getCustomerName()
-                     << setw(15) << left << getServiceCode(items[index].getServiceType())
-                     << setw(15) << left << items[index].getDeliveryType()
-                     << setw(15) << left << items[index].getWeight()
-                     << setw(10) << left << items[index].getPrice()
-                     << setw(15) << left << items[index].getDeliveryDays()
+                    cout << string(95, '-') << endl;
+                    found = true;
+                }
+                cout << setw(5) << left << item.getId()
+                     << setw(20) << left << item.getCustomerName()
+                     << setw(15) << left << getServiceCode(item.getServiceType())
+                     << setw(15) << left << item.getDeliveryType()
+                     << setw(15) << left << item.getWeight()
+                     << setw(10) << left << item.getPrice()
+                     << setw(15) << left << item.getDeliveryDays()
                      << endl;
             }
+        }
+        if (!found) {
+            cout << "No items found for customer name: " << name << endl;
         }
     }
 
     void findItemByService(const string& serviceType) const {
-        string lowerServiceType = toLowerCase(serviceType);
+        bool found = false;
+        for (const auto& item : items) {
+            if (getServiceCode(item.getServiceType()) == serviceType) {
+                if (!found) {
+                    cout << string(95, '-') << endl;
 
-        vector<int> indices;
-        for (size_t i = 0; i < items.size(); ++i) {
-            if (toLowerCase(getServiceCode(items[i].getServiceType())) == lowerServiceType) {
-                indices.push_back(i);
-            }
-        }
+                    cout << setw(5) << left << "ID"
+                         << setw(20) << left << "Customer"
+                         << setw(15) << left << "Service"
+                         << setw(15) << left << "Delivery"
+                         << setw(15) << left << "Weight(kg)"
+                         << setw(10) << left << "Price"
+                         << setw(15) << left << "Delivery Days"
+                         << endl;
 
-        if (indices.empty()) {
-            cout << "No items found for service type \"" << serviceType << "\"." << endl;
-        } else {
-            cout << setw(5) << left << "ID"
-                 << setw(20) << left << "Customer"
-                 << setw(15) << left << "Service"
-                 << setw(15) << left << "Delivery"
-                 << setw(15) << left << "Weight(kg)"
-                 << setw(10) << left << "Price"
-                 << setw(15) << left << "Delivery Days"
-                 << endl;
-            cout << string(90, '-') << endl;
-
-            for (int index : indices) {
-                cout << setw(5) << left << items[index].getId()
-                     << setw(20) << left << items[index].getCustomerName()
-                     << setw(15) << left << getServiceCode(items[index].getServiceType())
-                     << setw(15) << left << items[index].getDeliveryType()
-                     << setw(15) << left << items[index].getWeight()
-                     << setw(10) << left << items[index].getPrice()
-                     << setw(15) << left << items[index].getDeliveryDays()
+                    cout << string(95, '-') << endl;
+                    found = true;
+                }
+                cout << setw(5) << left << item.getId()
+                     << setw(20) << left << item.getCustomerName()
+                     << setw(15) << left << getServiceCode(item.getServiceType())
+                     << setw(15) << left << item.getDeliveryType()
+                     << setw(15) << left << item.getWeight()
+                     << setw(10) << left << item.getPrice()
+                     << setw(15) << left << item.getDeliveryDays()
                      << endl;
             }
+        }
+        if (!found) {
+            cout << "No items found for service type: " << serviceType << endl;
         }
     }
 
     void findItemByDelivery(const string& deliveryType) const {
-        string lowerDeliveryType = toLowerCase(deliveryType);
+        bool found = false;
+        for (const auto& item : items) {
+            if (item.getDeliveryType() == deliveryType) {
+                if (!found) {
+                    cout << string(95, '-') << endl;
 
-        vector<int> indices;
-        for (size_t i = 0; i < items.size(); ++i) {
-            if (toLowerCase(items[i].getDeliveryType()) == lowerDeliveryType) {
-                indices.push_back(i);
-            }
-        }
+                    cout << setw(5) << left << "ID"
+                         << setw(20) << left << "Customer"
+                         << setw(15) << left << "Service"
+                         << setw(15) << left << "Delivery"
+                         << setw(15) << left << "Weight(kg)"
+                         << setw(10) << left << "Price"
+                         << setw(15) << left << "Delivery Days"
+                         << endl;
 
-        if (indices.empty()) {
-            cout << "No items found for delivery type \"" << deliveryType << "\"." << endl;
-        } else {
-            cout << setw(5) << left << "ID"
-                 << setw(20) << left << "Customer"
-                 << setw(15) << left << "Service"
-                 << setw(15) << left << "Delivery"
-                 << setw(15) << left << "Weight(kg)"
-                 << setw(10) << left << "Price"
-                 << setw(15) << left << "Delivery Days"
-                 << endl;
-            cout << string(90, '-') << endl;
-
-            for (int index : indices) {
-                cout << setw(5) << left << items[index].getId()
-                     << setw(20) << left << items[index].getCustomerName()
-                     << setw(15) << left << getServiceCode(items[index].getServiceType())
-                     << setw(15) << left << items[index].getDeliveryType()
-                     << setw(15) << left << items[index].getWeight()
-                     << setw(10) << left << items[index].getPrice()
-                     << setw(15) << left << items[index].getDeliveryDays()
+                    cout << string(95, '-') << endl;
+                    found = true;
+                }
+                cout << setw(5) << left << item.getId()
+                     << setw(20) << left << item.getCustomerName()
+                     << setw(15) << left << getServiceCode(item.getServiceType())
+                     << setw(15) << left << item.getDeliveryType()
+                     << setw(15) << left << item.getWeight()
+                     << setw(10) << left << item.getPrice()
+                     << setw(15) << left << item.getDeliveryDays()
                      << endl;
             }
+        }
+        if (!found) {
+            cout << "No items found for delivery type: " << deliveryType << endl;
         }
     }
 
@@ -366,38 +391,54 @@ void readItems() const {
         sort(items.begin(), items.end(), compareByName);
     }
 
-    bool authenticateStaff(const string& username, const string& password) const {
-        return username == staffUsername && password == staffPassword;
-    }
-
-    float calculateTotalIncome() const {
-        float totalIncome = 0;
-        for (const auto& item : items) {
-            totalIncome += item.getPrice();
-        }
-        return totalIncome;
-    }
-
     void generateIncomeReport(const string& username, const string& password) const {
-        if (authenticateStaff(username, password)) {
-            cout << "\nIncome Report:\n";
-            cout << "-----------------------------\n";
-            cout << "Total Income: $" << calculateTotalIncome() << endl;
-            cout << "-----------------------------\n";
+        if (username == staffUsername && password == staffPassword) {
+            if (items.empty()) {
+                cout << "No items in the system." << endl;
+                return;
+            }
+
+            cout << string(90, '-') << endl;
+            cout << "Income Report:" << endl;
+            cout << string(90, '-') << endl;
+            float totalIncome = 0;
+
+            for (const auto& item : items) {
+                totalIncome += item.getPrice();
+            }
+
+            cout << "Total Income: " << totalIncome << endl;
         } else {
             cout << "Invalid username or password. Access denied." << endl;
         }
     }
+
+    void saveDataToFile(const string& filename) const {
+    ofstream outFile(filename);
+    if (!outFile) {
+        cerr << "Unable to open file " << filename << " for writing." << endl;
+        return;
+    }
+
+    for (const auto& item : items) {
+        outFile << item << endl;
+    }
+
+    outFile.close();
+    cout << "Data has been successfully saved to " << filename << "." << endl;
+}
+
 };
+
 
 int main() {
     LaundrySystem system;
+
     int choice;
     string customerName, deliveryType, serviceType, usernameInput, passwordInput;
     float weight;
     int id;
     LaundryService* service = nullptr;
-
     do {
         cout << "\nLaundry System Menu:\n";
         cout << "1. Add Laundry Item\n";
@@ -422,6 +463,7 @@ int main() {
                 getline(cin, customerName);
                 cout << "Select service type:\n1. Cuci Kering\n2. Cuci Setrika\n3. Setrika\n";
                 int serviceChoice;
+                cout << "Enter service type (1/2/3): ";
                 cin >> serviceChoice;
                 switch(serviceChoice) {
                     case 1:
@@ -434,11 +476,12 @@ int main() {
                         service = new Setrika();
                         break;
                     default:
-                        cout << "Invalid service type. Please choose again." << endl;
-                        continue;
+                        cout << "Invalid choice." << endl;
+                        break;
                 }
                 cout << "Select delivery type:\n1. Reguler\n2. Kilat\n3. Super Kilat\n";
                 int deliveryChoice;
+                cout << "Enter delivery type (1/2/3): ";
                 cin >> deliveryChoice;
                 switch(deliveryChoice) {
                     case 1:
@@ -454,86 +497,93 @@ int main() {
                         cout << "Invalid delivery type. Please choose again." << endl;
                         continue;
                 }
-                cout << "Enter weight in kg: ";
+                cout << "Enter weight (kg): ";
                 cin >> weight;
                 system.createItem(customerName, service, deliveryType, weight);
+                system.saveDataToFile("data.txt");
                 break;
             case 2:
                 system.readItems();
                 break;
-            case 3:
-                cout << "Enter item ID to edit: ";
-                cin >> id;
-                cout << "Select item to edit:\n";
-                cout << "1. Customer Name\n";
-                cout << "2. Service Type\n";
-                cout << "3. Delivery Type\n";
-                cout << "4. Weight\n";
-                int editOption;
-                cin >> editOption;
-            
-                switch (editOption) {
-                    case 1:
-                        cout << "Enter new customer name: ";
-                        cin.ignore();
-                        getline(cin, customerName);
-                        system.updateItem(id, customerName, nullptr, "", 0);
-                        break;
-                    case 2:
-                        cout << "Select new service type:\n1. Cuci Kering\n2. Cuci Setrika\n3. Setrika\n";
-                        cin >> serviceChoice;
-                        switch(serviceChoice) {
-                            case 1:
-                                service = new Cuci_Kering();
-                                break;
-                            case 2:
-                                service = new Cuci_Setrika();
-                                break;
-                            case 3:
-                                service = new Setrika();
-                                break;
-                            default:
-                                cout << "Invalid service type. Please choose again." << endl;
-                                continue;
-                        }
-                        system.updateItem(id, "", service, "", 0);
-                        break;
-                    case 3:
-                        cout << "Select new delivery type:\n1. Reguler\n2. Kilat\n3. Super Kilat\n";
-                        cin >> deliveryChoice;
-                        switch(deliveryChoice) {
-                            case 1:
-                                deliveryType = "Reguler";
-                                break;
-                            case 2:
-                                deliveryType = "Kilat";
-                                break;
-                            case 3:
-                                deliveryType = "Super Kilat";
-                                break;
-                            default:
-                                cout << "Invalid delivery type. Please choose again." << endl;
-                                continue;
-                        }
-                        system.updateItem(id, "", nullptr, deliveryType, 0);
-                        break;
-                    case 4:
-                        cout << "Enter new weight in kg: ";
-                        cin >> weight;
-                        system.updateItem(id, "", nullptr, "", weight); 
-                        break;
-                    default:
-                        cout << "Invalid option. Please choose again." << endl;
-                        continue;
-                }
-                break;
+        case 3:
+            cout << "Enter item ID to edit: ";
+            cin >> id;
+            cout << "Select item to edit:\n";
+            cout << "1. Customer Name\n";
+            cout << "2. Service Type\n";
+            cout << "3. Delivery Type\n";
+            cout << "4. Weight\n";
+            cout << "Enter item to edit:\n";
+            int editOption;
+            cin >> editOption;
+
+            switch (editOption) {
+                case 1:
+                    cout << "Enter new customer name: ";
+                    cin.ignore();
+                    getline(cin, customerName);
+                    system.updateItem(id, customerName, nullptr, "", 0); 
+                    system.saveDataToFile("data.txt");
+                    break;
+                case 2:
+                    cout << "Select new service type:\n1. Cuci Kering\n2. Cuci Setrika\n3. Setrika\n";
+                    cin >> serviceChoice;
+                    switch(serviceChoice) {
+                        case 1:
+                            service = new Cuci_Kering();
+                            break;
+                        case 2:
+                            service = new Cuci_Setrika();
+                            break;
+                        case 3:
+                            service = new Setrika();
+                            break;
+                        default:
+                            cout << "Invalid service type. Please choose again." << endl;
+                            continue;
+                    }
+                    system.updateItem(id, "", service, "", 0); 
+                    system.saveDataToFile("data.txt");
+                    break;
+                case 3:
+                    cout << "Select new delivery type:\n1. Reguler\n2. Kilat\n3. Super Kilat\n";
+                    cin >> deliveryChoice;
+                    switch(deliveryChoice) {
+                        case 1:
+                            deliveryType = "Reguler";
+                            break;
+                        case 2:
+                            deliveryType = "Kilat";
+                            break;
+                        case 3:
+                            deliveryType = "Super Kilat";
+                            break;
+                        default:
+                            cout << "Invalid delivery type. Please choose again." << endl;
+                            continue;
+                    }
+                    system.updateItem(id, "", nullptr, deliveryType, 0);
+                    system.saveDataToFile("data.txt"); 
+                    break;
+                case 4:
+                    cout << "Enter new weight in kg: ";
+                    cin >> weight;
+                    system.updateItem(id, "", nullptr, "", weight);
+                    system.saveDataToFile("data.txt"); 
+                    break;
+                default:
+                    cout << "Invalid option. Please choose again." << endl;
+                    continue;
+            }
+            break;
             case 4:
-                cout << "Enter item ID to delete: ";
+                cout << "Enter ID of the item to delete: ";
                 cin >> id;
                 system.deleteItem(id);
+                system.saveDataToFile("data.txt");
                 break;
             case 5:
-                cout << "Enter item ID to find: ";
+                cout << "Enter ID of the item to find: ";
                 cin >> id;
                 system.findItemById(id);
                 break;
@@ -557,11 +607,9 @@ int main() {
                 break;
             case 9:
                 system.sortByItemId();
-                cout << "Laundry items sorted by ID." << endl;
                 break;
             case 10:
                 system.sortByCustomerName();
-                cout << "Laundry items sorted by Customer Name." << endl;
                 break;
             case 11:
                 cout << "Enter staff username: ";
@@ -571,17 +619,11 @@ int main() {
                 system.generateIncomeReport(usernameInput, passwordInput);
                 break;
             case 0:
-                cout << "Exiting program." << endl;
+                cout << "Exiting system." << endl;
                 break;
             default:
-                cout << "Invalid choice. Please choose again." << endl;
-                break;
+                cout << "Invalid choice. Please try again." << endl;
         }
-
     } while (choice != 0);
-
-    // Clean up dynamically allocated memory
-    delete service;
-
     return 0;
 }
